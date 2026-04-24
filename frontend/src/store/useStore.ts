@@ -339,13 +339,9 @@ export const useStore = create<State & Actions>((set, get) => ({
       incomingQueue: s.incomingQueue.filter((c) => c.id !== callId),
       activeCalls: [
         ...s.activeCalls.map((c): Call =>
-<<<<<<< HEAD
-          c.status === 'active' ? { ...c, onHold: true, status: 'on-hold' } : c,
-=======
           c.status === 'active'
             ? { ...c, onHold: true, status: 'on-hold' as const }
             : c,
->>>>>>> fc16def (Fix Railway build and deployment)
         ),
         { ...ringing, status: 'active' as const, connectedAt: Date.now() },
       ],
