@@ -13,3 +13,6 @@ prisma/migrations/.tmp
 backend/dist
 frontend/dist
 *.tsbuildinfo
+
+# Design archives — extract locally, don't commit binaries
+*.zip

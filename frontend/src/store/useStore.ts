@@ -10,7 +10,17 @@ import { createWebPhone, type WebPhoneInstance } from '@/lib/webphone';
 import { api } from '@/lib/api';
 import { generateId } from '@/lib/utils';
 
-type SidebarView = 'dialpad' | 'history' | 'numbers' | 'settings';
+type SidebarView =
+  | 'dialpad'
+  | 'history'
+  | 'voicemail'
+  | 'messages'
+  | 'contacts'
+  | 'numbers'
+  | 'analytics'
+  | 'settings';
+
+export type ViewId = SidebarView;
 
 interface State {
   // Auth
@@ -30,6 +40,8 @@ interface State {
   // UI
   view: SidebarView;
   defaultFromNumberId: string | null;
+  railCollapsed: boolean;
+  accountFilter: string; // 'all' or an account id
 
   // Internal: one webphone per account
   _phones: Map<string, WebPhoneInstance>;
@@ -50,6 +62,8 @@ interface Actions {
   setDefaultNumber: (numberId: string) => Promise<void>;
 
   setView: (view: SidebarView) => void;
+  setRailCollapsed: (collapsed: boolean) => void;
+  setAccountFilter: (filter: string) => void;
 
   // Outbound
   placeCall: (fromNumberId: string, toNumber: string) => Promise<void>;
@@ -125,6 +139,8 @@ export const useStore = create<State & Actions>((set, get) => ({
   focusedCallId: null,
   view: 'dialpad',
   defaultFromNumberId: null,
+  railCollapsed: false,
+  accountFilter: 'all',
   _phones: new Map(),
   _tickHandle: null,
 
@@ -309,6 +325,8 @@ export const useStore = create<State & Actions>((set, get) => ({
   },
 
   setView: (view) => set({ view }),
+  setRailCollapsed: (collapsed) => set({ railCollapsed: collapsed }),
+  setAccountFilter: (filter) => set({ accountFilter: filter }),
 
   placeCall: async (fromNumberId, toNumber) => {
     const found = findNumber(get().accounts, fromNumberId);
