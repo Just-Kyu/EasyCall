@@ -7,25 +7,79 @@ import { DialpadPage } from './DialpadPage';
 import { HistoryPage } from './HistoryPage';
 import { NumbersPage } from './NumbersPage';
 import { SettingsPage } from './SettingsPage';
+import { ComingSoonPage } from './ComingSoonPage';
 
 export function DashboardPage() {
   const view = useStore((s) => s.view);
   const hasActive = useStore((s) => s.activeCalls.length > 0);
+  const railCollapsed = useStore((s) => s.railCollapsed);
 
   return (
-    <div className="flex h-full flex-col">
-      <TopBar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="scroll-area flex-1 overflow-y-auto p-6">
-          <div className="mx-auto max-w-5xl space-y-4">
-            {hasActive && <ActiveCallPanel />}
-            {view === 'dialpad' && <DialpadPage />}
-            {view === 'history' && <HistoryPage />}
-            {view === 'numbers' && <NumbersPage />}
-            {view === 'settings' && <SettingsPage />}
-          </div>
-        </main>
+    <div className="ec-app" data-rail={railCollapsed ? 'collapsed' : 'expanded'}>
+      <Sidebar />
+      <div className="ec-main">
+        <TopBar />
+        <div className="scroll-area" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          {hasActive && (
+            <div className="px-6 pt-6">
+              <ActiveCallPanel />
+            </div>
+          )}
+          {view === 'dialpad' && <DialpadPage />}
+          {view !== 'dialpad' && view !== 'voicemail' && view !== 'messages' && view !== 'contacts' && view !== 'analytics' && (
+            <div style={{ padding: 24 }}>
+              <div style={{ margin: '0 auto', maxWidth: 1100 }}>
+                {view === 'history' && <HistoryPage />}
+                {view === 'numbers' && <NumbersPage />}
+                {view === 'settings' && <SettingsPage />}
+              </div>
+            </div>
+          )}
+          {view === 'voicemail' && (
+            <ComingSoonPage
+              title="Voicemail"
+              description="Visual voicemail with auto-transcription, ranked by urgency."
+              bullets={[
+                'Listen, read, or skim transcripts',
+                'Mark messages handled, route to a teammate',
+                'Reply by callback or by SMS',
+              ]}
+            />
+          )}
+          {view === 'messages' && (
+            <ComingSoonPage
+              title="Messages"
+              description="SMS to customers and team chat in one inbox."
+              bullets={[
+                'Threaded conversations across all your numbers',
+                'Templates and quick replies',
+                'Loop teammates in without forwarding the whole thread',
+              ]}
+            />
+          )}
+          {view === 'contacts' && (
+            <ComingSoonPage
+              title="Contacts"
+              description="People, drivers, brokers, and vendors in one place."
+              bullets={[
+                'Synced across every connected RingCentral account',
+                'Speed-dial favorites, recent contacts',
+                'Notes and tags per contact',
+              ]}
+            />
+          )}
+          {view === 'analytics' && (
+            <ComingSoonPage
+              title="Analytics"
+              description="Volume, talk time, and reach across every account."
+              bullets={[
+                'Inbound vs outbound trends per number',
+                'Missed-call hotspots and abandonment',
+                'Per-account leaderboards',
+              ]}
+            />
+          )}
+        </div>
       </div>
       <IncomingCallModal />
     </div>
