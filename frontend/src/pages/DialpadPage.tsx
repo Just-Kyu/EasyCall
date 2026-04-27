@@ -8,9 +8,25 @@ import {
   ArrowDownLeft,
   PhoneMissed,
   ChevronDown,
+  StickyNote,
+  UserPlus,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils';
+
+/**
+ * Caller ID pill renders the local 10-digit form `(NNN) NNN-NNNN`
+ * (drops the `+1` prefix that `formatPhoneNumber` keeps for full-precision
+ * use elsewhere).
+ */
+function formatCallerId(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  const local = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (local.length === 10) {
+    return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  }
+  return formatPhoneNumber(raw);
+}
 
 type Tab = 'keypad' | 'calls' | 'voicemail' | 'notes';
 
@@ -76,21 +92,20 @@ export function DialpadPage() {
     <div
       className="dialpage"
       style={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(320px, 360px) minmax(0, 380px)',
         justifyContent: 'center',
         alignItems: 'flex-start',
-        padding: '32px 24px',
-        gap: 28,
-        flexWrap: 'wrap',
+        padding: '28px 24px',
+        gap: 24,
       }}
     >
       {/* Phone shell */}
       <div
         style={{
-          width: 340,
           background: 'var(--surface)',
           borderRadius: 18,
-          boxShadow: 'var(--shadow-lg)',
+          boxShadow: 'var(--shadow)',
           overflow: 'hidden',
           border: '1px solid var(--border)',
           display: 'flex',
@@ -133,7 +148,7 @@ export function DialpadPage() {
                   Caller ID:
                 </span>
                 <strong className="mono">
-                  {fromNum ? formatPhoneNumber(fromNum.number) : 'No number'}
+                  {fromNum ? formatCallerId(fromNum.number) : 'No number'}
                 </strong>
                 <ChevronDown size={12} />
               </button>
@@ -207,8 +222,8 @@ export function DialpadPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginTop: 14,
-                marginBottom: 6,
+                marginTop: 16,
+                marginBottom: 4,
                 position: 'relative',
               }}
             >
@@ -219,16 +234,17 @@ export function DialpadPage() {
                   if (e.key === 'Enter') call();
                 }}
                 placeholder="Enter a name or number"
-                className="mono"
                 style={{
                   background: 'transparent',
                   border: 'none',
                   textAlign: 'center',
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: 500,
                   color: 'var(--text)',
                   width: '100%',
                   outline: 'none',
+                  fontFamily: dest ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit',
+                  fontVariantNumeric: dest ? 'tabular-nums' : 'normal',
                 }}
               />
               {dest && (
@@ -276,16 +292,22 @@ export function DialpadPage() {
               </div>
             )}
 
-            {/* Call button row */}
+            {/* Call button row with side actions */}
             <div
               style={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
-                justifyContent: 'space-evenly',
-                gap: 12,
+                gap: 8,
+                marginTop: 4,
               }}
             >
-              <div style={{ width: 44 }} />
+              <SideAction
+                icon={<StickyNote size={16} />}
+                label="Notes"
+                onClick={() => undefined}
+                disabled
+              />
               <button
                 onClick={call}
                 disabled={!dest.trim()}
@@ -294,7 +316,12 @@ export function DialpadPage() {
               >
                 <Phone size={22} strokeWidth={2.2} fill="white" />
               </button>
-              <div style={{ width: 44 }} />
+              <SideAction
+                icon={<UserPlus size={16} />}
+                label="Add"
+                onClick={() => undefined}
+                disabled
+              />
             </div>
           </div>
         )}
@@ -307,11 +334,10 @@ export function DialpadPage() {
       {/* Side panels */}
       <div
         style={{
-          maxWidth: 380,
-          flex: '0 1 380px',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
+          minWidth: 0,
         }}
       >
         <div className="card">
@@ -455,5 +481,39 @@ function ComingSoonInline({ label }: { label: string }) {
       <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
       <div style={{ marginTop: 6, fontSize: 12.5 }}>Coming soon.</div>
     </div>
+  );
+}
+
+interface SideActionProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+function SideAction({ icon, label, onClick, disabled }: SideActionProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={disabled ? `${label} (coming soon)` : label}
+      style={{
+        justifySelf: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        background: 'var(--surface-2)',
+        border: '1px solid var(--border)',
+        borderRadius: 12,
+        padding: '8px 10px',
+        width: 56,
+        color: 'var(--text-muted)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.7 : 1,
+      }}
+    >
+      {icon}
+      <span style={{ fontSize: 10.5, fontWeight: 500 }}>{label}</span>
+    </button>
   );
 }

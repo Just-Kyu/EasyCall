@@ -444,6 +444,14 @@
     border-bottom-color: var(--ec-orange);
   }
 
+  /* ===== Dialpad page layout — single column on narrow screens ===== */
+  @media (max-width: 980px) {
+    .dialpage {
+      grid-template-columns: minmax(0, 360px) !important;
+      justify-content: center !important;
+    }
+  }
+
   /* ===== Field labels ===== */
   .field-label {
     font-size: 11px;
