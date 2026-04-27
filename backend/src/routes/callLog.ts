@@ -7,7 +7,9 @@ const router = Router();
 router.use(requireSession);
 
 router.get('/', async (req, res) => {
+  const userId = req.session!.userId;
   const where = {
+    appUserId: userId,
     ...(req.query.accountId ? { accountId: String(req.query.accountId) } : {}),
     ...(req.query.direction ? { direction: String(req.query.direction) } : {}),
     ...(req.query.from || req.query.to
@@ -61,10 +63,21 @@ router.post('/', async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const userId = req.session!.userId;
   const data = parsed.data;
+  // Verify the user actually owns the account this log belongs to.
+  const account = await prisma.account.findUnique({
+    where: { id: data.accountId },
+    select: { appUserId: true },
+  });
+  if (!account || account.appUserId !== userId) {
+    res.status(404).json({ error: 'Account not found' });
+    return;
+  }
   const log = await prisma.callLog.create({
     data: {
       accountId: data.accountId,
+      appUserId: userId,
       direction: data.direction,
       fromNumber: data.fromNumber,
       toNumber: data.toNumber,

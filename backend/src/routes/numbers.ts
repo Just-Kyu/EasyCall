@@ -8,6 +8,14 @@ router.use(requireSession);
 
 const labelSchema = z.object({ label: z.string().min(1).max(80) });
 
+async function ensureOwned(numberId: string, userId: string) {
+  const number = await prisma.phoneNumber.findUnique({
+    where: { id: numberId },
+    select: { account: { select: { appUserId: true } } },
+  });
+  return number?.account.appUserId === userId;
+}
+
 router.patch('/:id', async (req, res) => {
   const parsed = labelSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -15,6 +23,10 @@ router.patch('/:id', async (req, res) => {
     return;
   }
   try {
+    if (!(await ensureOwned(req.params.id, req.session!.userId))) {
+      res.status(404).json({ error: 'Phone number not found' });
+      return;
+    }
     await prisma.phoneNumber.update({
       where: { id: req.params.id },
       data: { label: parsed.data.label },
@@ -32,10 +44,17 @@ router.patch('/:id', async (req, res) => {
 
 router.post('/:id/default', async (req, res) => {
   try {
-    const exists = await prisma.phoneNumber.findUnique({ where: { id: req.params.id }, select: { id: true } });
-    if (!exists) { res.status(404).json({ error: 'Phone number not found' }); return; }
+    const userId = req.session!.userId;
+    if (!(await ensureOwned(req.params.id, userId))) {
+      res.status(404).json({ error: 'Phone number not found' });
+      return;
+    }
     await prisma.$transaction([
-      prisma.phoneNumber.updateMany({ data: { isDefault: false }, where: { isDefault: true } }),
+      // Only clear the default flag for the user's own numbers.
+      prisma.phoneNumber.updateMany({
+        data: { isDefault: false },
+        where: { isDefault: true, account: { appUserId: userId } },
+      }),
       prisma.phoneNumber.update({
         where: { id: req.params.id },
         data: { isDefault: true },

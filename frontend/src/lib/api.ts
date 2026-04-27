@@ -16,7 +16,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text || `${res.status} ${res.statusText}`);
+    let message = text || `${res.status} ${res.statusText}`;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === 'object' && typeof parsed.error === 'string') {
+        message = parsed.error;
+      }
+    } catch {
+      /* not JSON — keep raw text */
+    }
+    throw new ApiError(res.status, message);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -25,7 +34,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   // App auth
   login: (email: string, password: string) =>
-    request<{ ok: true }>('/auth/login', {
+    request<{ ok: true; email: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  signup: (email: string, password: string) =>
+    request<{ ok: true; email: string }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),

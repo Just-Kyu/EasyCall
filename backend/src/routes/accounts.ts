@@ -14,8 +14,10 @@ import { generateOAuthState } from './oauth.js';
 const router = Router();
 router.use(requireSession);
 
-router.get('/', async (_req, res) => {
+router.get('/', async (req, res) => {
+  const userId = req.session!.userId;
   const accounts = await prisma.account.findMany({
+    where: { appUserId: userId },
     include: { phoneNumbers: true },
     orderBy: { createdAt: 'asc' },
   });
@@ -56,6 +58,7 @@ router.post('/', async (req, res) => {
         clientId,
         clientSecret: encrypt(clientSecret),
         status: 'connecting',
+        appUserId: req.session!.userId,
       },
       include: { phoneNumbers: true },
     });
@@ -80,29 +83,40 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.session!.userId;
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      select: { appUserId: true },
+    });
+    if (!account || account.appUserId !== userId) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
     await prisma.account.delete({ where: { id: req.params.id } });
     res.status(204).end();
   } catch (e) {
-    const code = (e as { code?: string }).code;
-    if (code === 'P2025') {
-      res.status(404).json({ error: 'Account not found' });
-    } else {
-      res.status(500).json({ error: e instanceof Error ? e.message : 'Delete failed' });
-    }
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Delete failed' });
   }
 });
 
 router.post('/:id/refresh', async (req, res) => {
   try {
-    const exists = await prisma.account.findUnique({ where: { id: req.params.id }, select: { id: true } });
-    if (!exists) { res.status(404).json({ error: 'Account not found' }); return; }
+    const userId = req.session!.userId;
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      select: { appUserId: true },
+    });
+    if (!account || account.appUserId !== userId) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
     await refreshAccessToken(req.params.id);
     await syncPhoneNumbers(req.params.id);
-    const account = await prisma.account.findUnique({
+    const refreshed = await prisma.account.findUnique({
       where: { id: req.params.id },
       include: { phoneNumbers: true },
     });
-    res.json(account);
+    res.json(refreshed);
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Refresh failed' });
   }
@@ -110,12 +124,21 @@ router.post('/:id/refresh', async (req, res) => {
 
 router.post('/:id/sip-provision', async (req, res) => {
   try {
-    const exists = await prisma.account.findUnique({ where: { id: req.params.id }, select: { id: true } });
-    if (!exists) { res.status(404).json({ error: 'Account not found' }); return; }
+    const userId = req.session!.userId;
+    const account = await prisma.account.findUnique({
+      where: { id: req.params.id },
+      select: { appUserId: true },
+    });
+    if (!account || account.appUserId !== userId) {
+      res.status(404).json({ error: 'Account not found' });
+      return;
+    }
     const provisioning = await sipProvision(req.params.id);
     res.json(provisioning);
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : 'SIP provisioning failed' });
+    res
+      .status(500)
+      .json({ error: e instanceof Error ? e.message : 'SIP provisioning failed' });
   }
 });
 

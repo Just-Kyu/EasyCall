@@ -15,6 +15,9 @@ model AppUser {
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
+
+  accounts     Account[]
+  callLogs     CallLog[]
 }
 
 model Account {
@@ -30,8 +33,15 @@ model Account {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  // Owner — nullable so existing rows can be backfilled on first boot
+  // after the multi-user migration. New rows always get a value.
+  appUserId    String?
+  appUser      AppUser?      @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+
   phoneNumbers PhoneNumber[]
   callLogs     CallLog[]
+
+  @@index([appUserId])
 }
 
 model PhoneNumber {
@@ -60,6 +70,11 @@ model CallLog {
   startedAt          DateTime
   recording          String?
 
+  // Owner — same nullability rule as Account.
+  appUserId          String?
+  appUser            AppUser? @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+
   @@index([accountId])
   @@index([startedAt])
+  @@index([appUserId])
 }
