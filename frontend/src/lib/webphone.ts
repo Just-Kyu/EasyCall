@@ -63,8 +63,8 @@ interface SipSdk {
   start?: () => Promise<void>;
   register?: () => Promise<void>;
   on?: (event: string, listener: (session: SipSession) => void) => void;
-  call?: (to: string, from?: string) => Promise<SipSession> | SipSession;
-  invite?: (target: string, options?: unknown) => Promise<SipSession> | SipSession;
+  call?: (target: string, opts?: unknown) => Promise<SipSession> | SipSession;
+  invite?: (target: string, opts?: unknown) => Promise<SipSession> | SipSession;
   dispose?: () => Promise<void> | void;
   destroy?: () => void;
 }
