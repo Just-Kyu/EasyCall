@@ -447,5 +447,11 @@ export const useStore = create<State & Actions>((set, get) => ({
     await get()._phones.get(call.accountId)?.transfer(callId, target);
   },
 
+  ignoreIncoming: (callId) => {
+    set((s) => ({
+      incomingQueue: s.incomingQueue.filter((c) => c.id !== callId),
+    }));
+  },
+
   focusCall: (callId) => set({ focusedCallId: callId }),
 }));
