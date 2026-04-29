@@ -372,10 +372,17 @@ export const useStore = create<State & Actions>((set, get) => ({
     if (!ringing) return;
     const phone = get()._phones.get(ringing.accountId);
     if (!phone) return;
-    // Auto-hold any other live call so the user can hop.
+    // Auto-hold any other live call so the user can hop. The hold has to be
+    // routed through the OTHER call's own WebPhone instance (it may belong
+    // to a different RingCentral account), not through the new call's phone.
     for (const other of get().activeCalls) {
       if (!other.onHold && other.status === 'active') {
-        await phone.hold(other.id, true);
+        const otherPhone = get()._phones.get(other.accountId);
+        try {
+          await otherPhone?.hold(other.id, true);
+        } catch (e) {
+          console.warn('Auto-hold failed for', other.id, e);
+        }
       }
     }
     await phone.answer(callId);
